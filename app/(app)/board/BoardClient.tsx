@@ -6,7 +6,7 @@ import { Task, COLUMNS, TEAM_MEMBERS, TaskStatus, Sprint, Priority, MEMBER_COLOR
 import { moveTaskStatusAction, deleteTaskAction } from "@/app/lib/actions";
 import TaskCard from "@/app/components/TaskCard";
 import ConfirmModal from "@/app/components/ConfirmModal";
-import InlineTaskForm from "@/app/components/InlineTaskForm";
+import TaskModal from "@/app/components/TaskModal";
 import { Plus, ChevronLeft, ChevronRight, GripVertical } from "lucide-react";
 import { cn } from "@/app/lib/utils";
 
@@ -25,8 +25,9 @@ const priorityConfig: Record<Priority, { label: string; color: string; bg: strin
 export default function BoardClient({ sprint, initialTasks, sprints }: BoardClientProps) {
   const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const [showForm, setShowForm] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [modalTask, setModalTask] = useState<Task | null>(null);
+  const [modalDefaultStatus, setModalDefaultStatus] = useState<TaskStatus>("backlog");
   const [deletingTaskId, setDeletingTaskId] = useState<number | null>(null);
   const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
   const [selectedPriorities, setSelectedPriorities] = useState<Set<string>>(new Set());
@@ -91,25 +92,22 @@ export default function BoardClient({ sprint, initialTasks, sprints }: BoardClie
     });
   }
 
-  function handleFormDone() {
-    setShowForm(false);
-    setEditingTask(null);
+  function openAddModal(status: TaskStatus) {
+    setModalTask(null);
+    setModalDefaultStatus(status);
+    setShowModal(true);
+  }
+
+  function openEditModal(task: Task) {
+    setModalTask(task);
+    setModalDefaultStatus(task.status);
+    setShowModal(true);
+  }
+
+  function closeModal() {
+    setShowModal(false);
+    setModalTask(null);
     router.refresh();
-  }
-
-  function handleFormCancel() {
-    setShowForm(false);
-    setEditingTask(null);
-  }
-
-  function startAdd() {
-    setEditingTask(null);
-    setShowForm(true);
-  }
-
-  function startEdit(task: Task) {
-    setEditingTask(task);
-    setShowForm(true);
   }
 
   function onDragStart(e: React.DragEvent, taskId: number) {
@@ -161,35 +159,22 @@ export default function BoardClient({ sprint, initialTasks, sprints }: BoardClie
   }
 
   return (
-    <div className="p-8 max-w-[1600px] mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-8 max-w-[95vw] mx-auto">
+      <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Kanban Board</h1>
           <p className="text-gray-500 mt-1">
             {sprint.name} {sprint.goal && <span className="text-gray-400">— {sprint.goal}</span>}
           </p>
         </div>
-        {!showForm && (
-          <button
-            onClick={startAdd}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Add Task
-          </button>
-        )}
+        <button
+          onClick={() => openAddModal("todo")}
+          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm"
+        >
+          <Plus className="w-4 h-4" />
+          Add Task
+        </button>
       </div>
-
-      {/* Inline Task Form */}
-      {showForm && (
-        <InlineTaskForm
-          task={editingTask}
-          sprintId={sprint.id}
-          sprints={sprints}
-          onDone={handleFormDone}
-          onCancel={handleFormCancel}
-        />
-      )}
 
       {/* Filter Bar */}
       <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-6 shadow-sm">
@@ -255,7 +240,7 @@ export default function BoardClient({ sprint, initialTasks, sprints }: BoardClie
         </div>
       </div>
 
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-5 gap-6">
         {COLUMNS.map((col) => {
           const colTasks = filteredTasks.filter((t) => t.status === col.id);
           const isDragOver = dragOverColumn === col.id;
@@ -267,13 +252,23 @@ export default function BoardClient({ sprint, initialTasks, sprints }: BoardClie
                   <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: col.color }} />
                   <span className="text-sm font-semibold text-gray-700">{col.label}</span>
                 </div>
-                <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                  {colTasks.length}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                    {colTasks.length}
+                  </span>
+                  <button
+                    onClick={() => openAddModal(col.id)}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors text-xs font-medium"
+                    title={`Add task to ${col.label}`}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add
+                  </button>
+                </div>
               </div>
               <div
                 className={cn(
-                  "flex-1 border border-gray-200 rounded-b-xl p-3 space-y-3 min-h-[400px] transition-colors",
+                  "flex-1 border border-gray-200 rounded-b-xl p-4 space-y-4 min-h-[400px] transition-colors",
                   isDragOver ? "bg-blue-50/70 border-blue-300" : "bg-gray-100/50"
                 )}
                 onDragOver={(e) => onDragOver(e, col.id)}
@@ -295,7 +290,7 @@ export default function BoardClient({ sprint, initialTasks, sprints }: BoardClie
                     </div>
                     <TaskCard
                       task={task}
-                      onEdit={startEdit}
+                      onEdit={openEditModal}
                       onDelete={(id) => setDeletingTaskId(id)}
                       compact
                     />
@@ -334,6 +329,16 @@ export default function BoardClient({ sprint, initialTasks, sprints }: BoardClie
           );
         })}
       </div>
+
+      {showModal && sprint && (
+        <TaskModal
+          task={modalTask}
+          sprintId={sprint.id}
+          sprints={sprints}
+          onClose={closeModal}
+          defaultStatus={modalDefaultStatus}
+        />
+      )}
 
       {deletingTaskId !== null && (
         <ConfirmModal

@@ -24,27 +24,53 @@ export default function TaskCard({ task, onEdit, onDelete, onMove, compact = fal
 
   if (compact) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm hover:shadow-md transition-shadow group">
+      <div className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm hover:shadow-md transition-shadow">
         <div className="flex items-start justify-between gap-2">
           <h4 className="text-sm font-medium text-gray-900 line-clamp-2 flex-1">{task.title}</h4>
           {task.points > 0 && (
-            <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+            <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded shrink-0">
               {task.points}
             </span>
           )}
         </div>
         <div className="flex items-center justify-between mt-2">
           <MemberAvatar member={task.assignee} size="sm" />
-          <span className={cn("text-xs px-1.5 py-0.5 rounded font-medium", priority.bg, priority.color)}>
-            {priority.label}
-          </span>
+          <div className="flex items-center gap-1">
+            <span className={cn("text-xs px-1.5 py-0.5 rounded font-medium", priority.bg, priority.color)}>
+              {priority.label}
+            </span>
+            {onEdit && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(task);
+                }}
+                className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                title="Edit"
+              >
+                <Pencil className="w-3 h-3" />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(task.id);
+                }}
+                className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500"
+                title="Delete"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all group">
+    <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all">
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
@@ -54,11 +80,12 @@ export default function TaskCard({ task, onEdit, onDelete, onMove, compact = fal
             <p className="text-xs text-gray-500 line-clamp-2 mb-2">{task.description}</p>
           )}
         </div>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1">
           {onEdit && (
             <button
               onClick={() => onEdit(task)}
               className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+              title="Edit"
             >
               <Pencil className="w-3.5 h-3.5" />
             </button>
@@ -67,6 +94,7 @@ export default function TaskCard({ task, onEdit, onDelete, onMove, compact = fal
             <button
               onClick={() => onDelete(task.id)}
               className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500"
+              title="Delete"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>

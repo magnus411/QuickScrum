@@ -6,6 +6,7 @@ import { Sprint, SprintStatus, Task } from "@/app/lib/types";
 import {
   activateSprintAction,
   deleteSprintAction,
+  deleteTaskAction,
 } from "@/app/lib/actions";
 import SprintModal from "@/app/components/SprintModal";
 import ConfirmModal from "@/app/components/ConfirmModal";
@@ -48,6 +49,7 @@ export default function SprintsClient({ sprints, activeSprint, allTasks }: Sprin
   const [expandedSprintId, setExpandedSprintId] = useState<number | null>(null);
   const [addingTaskToSprint, setAddingTaskToSprint] = useState<Sprint | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [deletingTaskId, setDeletingTaskId] = useState<number | null>(null);
 
   function handleSprintCreatedOrUpdated() {
     setShowSprintModal(false);
@@ -61,9 +63,15 @@ export default function SprintsClient({ sprints, activeSprint, allTasks }: Sprin
     router.refresh();
   }
 
-  async function handleDelete(sprintId: number) {
+  async function handleDeleteSprint(sprintId: number) {
     await deleteSprintAction(sprintId);
     setDeletingSprintId(null);
+    router.refresh();
+  }
+
+  async function handleDeleteTask(taskId: number) {
+    await deleteTaskAction(taskId);
+    setDeletingTaskId(null);
     router.refresh();
   }
 
@@ -219,8 +227,7 @@ export default function SprintsClient({ sprints, activeSprint, allTasks }: Sprin
                       {sprintTasks.map((task) => (
                         <div
                           key={task.id}
-                          onClick={() => { setAddingTaskToSprint(sprint); setEditingTask(task); }}
-                          className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-blue-200 hover:bg-blue-50/30 cursor-pointer transition-all"
+                          className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all group"
                         >
                           <div className={cn(
                             "w-2 h-2 rounded-full shrink-0",
@@ -230,15 +237,33 @@ export default function SprintsClient({ sprints, activeSprint, allTasks }: Sprin
                             task.status === "todo" ? "bg-blue-500" : "bg-gray-400"
                           )} />
                           <span className={cn(
-                            "text-sm flex-1 truncate",
+                            "text-sm flex-1 truncate cursor-pointer",
                             task.status === "done" ? "text-gray-400 line-through" : "text-gray-700"
-                          )}>
+                          )}
+                            onClick={() => { setAddingTaskToSprint(sprint); setEditingTask(task); }}
+                          >
                             {task.title}
                           </span>
                           {task.points > 0 && (
                             <span className="text-xs text-gray-400">{task.points}p</span>
                           )}
                           <MemberAvatar member={task.assignee} size="sm" />
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => { setAddingTaskToSprint(sprint); setEditingTask(task); }}
+                              className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                              title="Edit"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setDeletingTaskId(task.id)}
+                              className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -276,8 +301,19 @@ export default function SprintsClient({ sprints, activeSprint, allTasks }: Sprin
         <ConfirmModal
           title="Delete Sprint"
           message="Are you sure you want to delete this sprint? Tasks in this sprint will become unassigned."
-          onConfirm={() => handleDelete(deletingSprintId)}
+          onConfirm={() => handleDeleteSprint(deletingSprintId)}
           onCancel={() => setDeletingSprintId(null)}
+          confirmText="Delete"
+          variant="danger"
+        />
+      )}
+
+      {deletingTaskId !== null && (
+        <ConfirmModal
+          title="Delete Task"
+          message="Are you sure you want to delete this task? This action cannot be undone."
+          onConfirm={() => handleDeleteTask(deletingTaskId)}
+          onCancel={() => setDeletingTaskId(null)}
           confirmText="Delete"
           variant="danger"
         />

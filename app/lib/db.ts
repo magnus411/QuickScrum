@@ -1,5 +1,5 @@
 import Database from "better-sqlite3";
-import { Task, Sprint, TaskHistory, TeamMember, TaskStatus, Priority, SprintStatus } from "./types";
+import { Task, Sprint, TaskHistory, TaskLog, TeamMember, TaskStatus, Priority, SprintStatus } from "./types";
 
 const DB_PATH = process.env.DATABASE_URL?.replace("file:", "") || "./scrum.db";
 
@@ -54,6 +54,16 @@ function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
     CREATE INDEX IF NOT EXISTS idx_task_history_task ON task_history(taskId);
     CREATE INDEX IF NOT EXISTS idx_task_history_date ON task_history(date);
+
+    CREATE TABLE IF NOT EXISTS task_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      taskId INTEGER NOT NULL,
+      message TEXT NOT NULL,
+      createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (taskId) REFERENCES tasks(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_task_logs_task ON task_logs(taskId);
   `);
 }
 
@@ -161,6 +171,20 @@ export function deleteTask(id: number): void {
 export function moveTaskToSprint(taskId: number, sprintId: number | null): void {
   const db = getDb();
   db.prepare("UPDATE tasks SET sprintId = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?").run(sprintId, taskId);
+}
+
+// Task logs
+export function getTaskLogs(taskId: number): TaskLog[] {
+  const db = getDb();
+  return db.prepare("SELECT * FROM task_logs WHERE taskId = ? ORDER BY createdAt DESC").all(taskId) as TaskLog[];
+}
+
+export function addTaskLog(taskId: number, message: string): TaskLog {
+  const db = getDb();
+  const result = db.prepare(
+    "INSERT INTO task_logs (taskId, message) VALUES (?, ?)"
+  ).run(taskId, message);
+  return db.prepare("SELECT * FROM task_logs WHERE id = ?").get(result.lastInsertRowid) as TaskLog;
 }
 
 // Task history for burndown

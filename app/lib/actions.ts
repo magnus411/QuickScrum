@@ -16,8 +16,12 @@ import {
   getAllTasks,
   getSprintStats,
   getAllTaskHistoryForSprint,
+  getTaskById,
+  getTaskLogs,
+  addTaskLog,
 } from "./db";
 import { TaskStatus, TeamMember, Priority } from "./types";
+import { sendAssignmentEmail, sendLogEmail } from "./email";
 
 // Auth actions
 export async function loginAction(formData: FormData): Promise<{ success: boolean; error?: string }> {
@@ -95,7 +99,7 @@ export async function createTaskAction(formData: FormData) {
   const priority = (formData.get("priority") as Priority) || "medium";
   const status = (formData.get("status") as TaskStatus) || "backlog";
 
-  createTask({
+  const task = createTask({
     title,
     description,
     status,
@@ -104,6 +108,14 @@ export async function createTaskAction(formData: FormData) {
     sprintId,
     priority,
   });
+
+  if (task.assignee) {
+    await sendAssignmentEmail({
+      taskId: task.id,
+      taskTitle: task.title,
+      assignee: task.assignee,
+    });
+  }
 
   revalidatePath("/board");
   revalidatePath("/backlog");
@@ -123,6 +135,8 @@ export async function updateTaskAction(formData: FormData) {
   const status = formData.get("status") as TaskStatus | undefined;
   const sprintId = formData.get("sprintId");
 
+  const oldTask = getTaskById(id);
+
   const updates: any = { title, description, assignee: assignee || null, points, priority };
   if (status) updates.status = status;
 
@@ -131,6 +145,15 @@ export async function updateTaskAction(formData: FormData) {
   if (sprintId !== undefined) {
     const newSprintId = sprintId ? parseInt(sprintId as string) : null;
     moveTaskToSprint(id, newSprintId);
+  }
+
+  // Notify on new assignment
+  if (assignee && oldTask && oldTask.assignee !== assignee) {
+    await sendAssignmentEmail({
+      taskId: id,
+      taskTitle: title,
+      assignee,
+    });
   }
 
   revalidatePath("/board");
@@ -155,6 +178,7 @@ export async function deleteTaskAction(taskId: number) {
   revalidatePath("/");
   revalidatePath("/burndown");
   revalidatePath("/velocity");
+  revalidatePath("/sprints");
 }
 
 export async function carryOverTaskAction(taskId: number, newSprintId: number) {
@@ -200,6 +224,32 @@ export async function bulkMoveToBacklogAction(taskIds: number[]) {
   revalidatePath("/sprints");
   revalidatePath("/");
   revalidatePath("/backlog");
+}
+
+// Task log actions
+export async function getTaskLogsAction(taskId: number) {
+  return getTaskLogs(taskId);
+}
+
+export async function addTaskLogAction(taskId: number, message: string) {
+  const log = addTaskLog(taskId, message);
+  const task = getTaskById(taskId);
+
+  // Notify assignee if different from nobody
+  if (task?.assignee) {
+    await sendLogEmail({
+      taskId,
+      taskTitle: task.title,
+      logMessage: message,
+      author: "QuickScrum", // We don't track who wrote the log, so generic
+      notifyee: task.assignee,
+    });
+  }
+
+  revalidatePath("/board");
+  revalidatePath("/backlog");
+  revalidatePath("/sprints");
+  return log;
 }
 
 // Sprint actions

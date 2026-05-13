@@ -59,3 +59,10 @@ export interface TaskHistory {
   status: TaskStatus;
   date: string;
 }
+
+export interface TaskLog {
+  id: number;
+  taskId: number;
+  message: string;
+  createdAt: string;
+}
