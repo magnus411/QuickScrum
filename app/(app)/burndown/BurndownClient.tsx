@@ -248,7 +248,7 @@ export default function BurndownClient({ data }: BurndownClientProps) {
                     borderRadius: "12px",
                     boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                   }}
-                  formatter={(value: number) => [`${value}%`, "Completed"]}
+                  formatter={(value) => [`${value}%`, "Completed"]}
                 />
                 <ReferenceLine y={100} stroke="#10b981" strokeDasharray="3 3" />
                 <Line type="monotone" dataKey="completed" stroke="#10b981" strokeWidth={3} dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }} activeDot={{ r: 6, strokeWidth: 2 }} name="Completion %" />

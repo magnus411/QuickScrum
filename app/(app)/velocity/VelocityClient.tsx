@@ -146,7 +146,7 @@ export default function VelocityClient({ data, average }: VelocityClientProps) {
                         borderRadius: "12px",
                         boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                       }}
-                      formatter={(value: number) => [`${value}%`, "Completion Rate"]}
+                      formatter={(value) => [`${value}%`, "Completion Rate"]}
                     />
                     <ReferenceLine y={100} stroke="#10b981" strokeDasharray="3 3" />
                     <Bar dataKey="rate" fill="#10b981" radius={[4, 4, 0, 0]} name="Completion %" />
