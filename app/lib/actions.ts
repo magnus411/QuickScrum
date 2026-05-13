@@ -35,7 +35,7 @@ export async function getBoardData() {
   const sprint = getActiveSprint();
   const tasks = sprint ? getTasksBySprint(sprint.id) : [];
   const sprints = getAllSprints();
-  return { sprint, tasks, sprints };
+  return { sprint: sprint ?? null, tasks, sprints };
 }
 
 export async function getBurndownData() {
